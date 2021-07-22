@@ -5,7 +5,7 @@
 #include <vector>
 #include <assert.h>
 #include <memory>
-#include "Layer.h"
+#include "Layer.hpp"
 #include "math.hpp"
 
 

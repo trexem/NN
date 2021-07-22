@@ -2,7 +2,7 @@
 #define _MATH_HPP_
 
 #include <iostream>
-#include "Matrix.h"
+#include "Matrix.hpp"
 
 namespace utils
 {

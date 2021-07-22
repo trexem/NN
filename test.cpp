@@ -1,7 +1,7 @@
 #include <iostream>
 #include <vector>
 #include <memory>
-#include "NeuralNetwork.h"
+#include "NeuralNetwork.hpp"
 
 using namespace std;
 

@@ -5,7 +5,7 @@
 #include <vector>
 #include <random>
 #include <memory>
-#include "Neuron.h"
+#include "Neuron.hpp"
 
 class Matrix {
 private:

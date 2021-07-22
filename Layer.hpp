@@ -4,7 +4,7 @@
 #include <iostream>
 #include <vector>
 #include <memory>
-#include "Matrix.h"
+#include "Matrix.hpp"
 
 class Layer {
 private:
