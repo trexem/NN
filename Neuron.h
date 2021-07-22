@@ -17,6 +17,8 @@ private:
 	int m_activation_type{1};
 public:
 //Constructors
+	Neuron() {
+	}
 	Neuron(double t_val) {
 		m_val = t_val;
 	}

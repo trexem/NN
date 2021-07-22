@@ -5,8 +5,8 @@
 #include <vector>
 #include <assert.h>
 #include <memory>
-#include "Matrix.h"
 #include "Layer.h"
+#include "Math.cpp"
 
 
 class NeuralNetwork {
@@ -69,12 +69,98 @@ public:
 	void feedForward() {
 		for (int i = 0; i < m_layers.size() - 1; i++) {
 			auto mat_a = std::make_unique<Matrix>(1, getLayerSize(i), false);
+			if (i) {
+				*mat_a = getActiveNeuronMatrix(i);
+			} else{
+				*mat_a = getNeuronMatrix(i);
+			}
+			auto mat_b = std::make_unique<Matrix>(getLayerSize(i), getLayerSize(i + 1), false);
+			*mat_b = getWeightMatrix(i);
+			auto mat_c = std::make_unique<Matrix>(1, getLayerSize(i + 1), false);
+			::utils::Math::multiplyMatrix(&*mat_a, &*mat_b, &*mat_c);
+			for (int c_index = 0; c_index < getLayerSize(i + 1); c_index++) {
+				setNeuronValue(i + 1, c_index, mat_c->getValue(0, c_index));
+			}
+			if (i == m_layers.size() - 2) {
+				*mat_c = getSoftMaxOutput();
+				mat_c->printToConsole();
+				for (int c_index = 0; c_index < getLayerSize(i + 1); c_index++) {
+					setNeuronValue(m_layers.size() - 1, c_index, mat_c->getValue(0, c_index));
+				}
+			}
 		}
 	}
 
+//Setters
+	void setCurrentInput(std::vector<double> t_input) {
+		m_input = t_input;
+		for (int i = 0; i < m_input.size(); i++) {
+			m_layers.at(0).setVal(i, m_input.at(i));
+		}
+	}
+	void setNeuronValue(int t_index_layer, int t_index_neuron, double t_val) {
+		m_layers.at(t_index_layer).setVal(t_index_neuron, t_val);
+	}
+	void setCurrentTarget(std::vector<double> t_target) {
+		m_target = t_target;
+	}
+	void setErrors() {
+		if (m_errors.size() == 0) {
+			for (int qw = 0; qw < m_target.size(); qw++) {
+				m_errors.push_back(0);
+				m_derived_errors.push_back(0);
+			}
+		}
+		int output_layer_index = m_layers.size() - 1;
+		std::vector<Neuron> output_neurons = m_layers.at(output_layer_index).getNeurons();
+		m_error = 0.0;
+		for (int i = 0; i < m_target.size(); i++) {
+			double t = m_target.at(i);
+			double y = output_neurons.at(i).getActiveVal();
+			m_errors.at(i) = 0.5 * pow(abs(t - y), 2);
+			m_derived_errors.at(i) = y - t;
+			m_error += m_errors.at(i);
+		}
+		m_historical_errors.push_back(m_error);
+	}
+	void setErrors(std::vector<double> t_errors) {
+		if (m_errors.size() == 0) {
+			for (int qw = 0; qw < m_target.size(); qw++) {
+				m_errors.push_back(0);
+				m_derived_errors.push_back(0);
+			}
+		}
+		for (int i = 0; i < m_target.size(); i++) {
+			m_derived_errors.at(i) = m_errors.at(i);
+			m_errors.at(i) = t_errors.at(i);
+			m_error += m_errors.at(i);
+		}
+		m_historical_errors.push_back(m_error);
+	}
 	    //Getters
 	int getLayerSize(int t_i) {
 		return m_layers.at(t_i).getSize();
+	}
+	Matrix getNeuronMatrix(int t_i) {
+		return m_layers.at(t_i).matrixifyVals();
+	}
+	Matrix getActiveNeuronMatrix(int t_i) {
+		return m_layers.at(t_i).matrixifyActiveVals();
+	}
+	Matrix getDerivedNeuronMatrix(int t_i) {
+		return m_layers.at(t_i).matrixifyDerivedVals();
+	}
+	Matrix getWeightMatrix(int t_i) {
+		return m_weight_matrices.at(t_i);
+	}
+	Matrix getSoftMaxOutput() {
+		return m_layers.at(m_topology.size() - 1).getSoftMaxValues();
+	}
+	double getTotalError() {
+		return m_error;
+	}
+	std::vector<double> getErrors() {
+		return m_errors;
 	}
 
 	    //variables

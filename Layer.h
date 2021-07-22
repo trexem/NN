@@ -4,7 +4,6 @@
 #include <iostream>
 #include <vector>
 #include <memory>
-#include "Neuron.h"
 #include "Matrix.h"
 
 class Layer {
@@ -13,6 +12,8 @@ private:
 	std::vector<Neuron> m_neurons;
 public:
 	    //Constructors
+	Layer() {
+	}
 	Layer(int t_size) {
 		m_size = t_size;
 		for (int r = 0; r < m_size; r++) {

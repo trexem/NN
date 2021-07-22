@@ -14,6 +14,8 @@ private:
 	std::vector<std::vector<double> > m_values;
 public:
 	    //Constructors
+	Matrix() {
+	}
 	Matrix(int t_num_rows, int t_num_cols, bool t_is_random) {
 		m_num_rows = t_num_rows;
 		m_num_cols = t_num_cols;
