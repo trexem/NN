@@ -6,7 +6,7 @@
 #include <assert.h>
 #include <memory>
 #include "Layer.h"
-#include "Math.cpp"
+#include "math.hpp"
 
 
 class NeuralNetwork {
