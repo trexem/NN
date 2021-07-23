@@ -6,10 +6,11 @@
 using namespace std;
 
 int main(int argc, char **argv) {
-	std::vector<int> top{2, 5, 2};
-	std::vector<double> input{1, 1};
+	vector<int> top{2, 2, 1};
+	vector<double> input{1, 1};
 	auto nn = std::make_unique<NeuralNetwork>(top);
 	nn->setCurrentInput(input);
 	nn->feedForward();
 	nn->printToConsole();
+	nn->backPropagation(1);
 }

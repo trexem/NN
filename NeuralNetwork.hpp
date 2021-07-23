@@ -21,19 +21,48 @@ private:
 	std::vector<double> m_errors;
 	std::vector<double> m_historical_errors;
 	std::vector<double> m_derived_errors;
+	int m_out_activation{1};
+	int m_hidden_activation{1};
 public:
-	NeuralNetwork(std::vector<int> t_topology) {
+	    //Constructors
+	    //We ask for the topology of the nn, the activation function for layers
+	NeuralNetwork(std::vector<int> t_topology, int t_hidden_activation) {
 		m_topology = t_topology;
+		m_out_activation = t_out_activation;
+		m_hidden_activation = t_hidden_activation;
 		m_topology_size = m_topology.size();
 		m_bias = 1;
 		m_learning_rate = .01;
 		m_momentum = 1;
 		for (int i = 0; i < m_topology_size; i++) {
-			if (i == m_topology_size - 1 || i == 0) {
-				auto lay = std::make_unique<Layer>(m_topology.at(i), SFMX);
+			auto lay = std::make_unique<Layer>(m_topology.at(i), m_hidden_activation);
+			m_layers.push_back(*lay);
+		}
+		for (int i = 0; i < m_topology_size - 1; i++) {
+			if (i < m_topology_size - 2) {
+				auto mat = std::make_unique<Matrix>(m_topology.at(i), m_topology.at(i + 1), true, true);
+				m_weight_matrices.push_back(*mat);
+			} else {
+				auto mat = std::make_unique<Matrix>(m_topology.at(i), m_topology.at(i + 1), true);
+				m_weight_matrices.push_back(*mat);
+			}
+		}
+	}
+	    //Overload function to specify output layer activation function
+	NeuralNetwork(std::vector<int> t_topology, int t_hidden_activation, int t_out_activation) {
+		m_topology = t_topology;
+		m_out_activation = t_out_activation;
+		m_hidden_activation = t_hidden_activation;
+		m_topology_size = m_topology.size();
+		m_bias = 1;
+		m_learning_rate = .01;
+		m_momentum = 1;
+		for (int i = 0; i < m_topology_size; i++) {
+			if (i == m_topology_size - 1) {
+				auto lay = std::make_unique<Layer>(m_topology.at(i), m_out_activation);
 				m_layers.push_back(*lay);
 			} else {
-				auto lay = std::make_unique<Layer>(m_topology.at(i), PRELU);
+				auto lay = std::make_unique<Layer>(m_topology.at(i), m_hidden_activation);
 				m_layers.push_back(*lay);
 			}
 		}
@@ -89,6 +118,97 @@ public:
 				}
 			}
 		}
+	}
+	void backPropagation(int t_reward) {
+		std::vector<int> output = getSoftMaxOutput().matrixMax();
+		int op_max = output.at(1);
+
+		    // Output to last Hidden Layer
+		int index_output_layer = m_topology.size() - 1;
+		    //Initialize gradients matrix
+		auto gradients = std::make_unique<Matrix>(
+			1,
+			m_topology.at(index_output_layer),
+			false
+			);
+		    //Give vaulues to gradients matrix
+		for (int i = 0; i < m_topology.at(index_output_layer); i++) {
+			if (i == op_max) {
+				gradients->setValue(
+					0,
+					i,
+					-t_reward / getSoftMaxOutput().getValue(0, i)
+					);
+			} else{
+				gradients->setValue(0, i, 0);
+			}
+			    //We set a top por the gradients in 20, so it won't go to inf
+			if (gradients->getValue(0, i) > 20) {
+				gradients->setValue(0, i, 20);
+			}
+		}
+		    //Initialize delta_weights matrix
+		auto delta_weights = std::make_unique<Matrix>(
+			m_topology.at(index_output_layer - 1),
+			m_topology.at(index_output_layer),
+			false
+			);
+		for (int r = 0; r < delta_weights->getNumRows(); r++) {
+			for (int c = 0; c < delta_weights->getNumCols(); c++) {
+				if (c == op_max) {
+					delta_weights->setValue(
+						r,
+						c,
+						-t_reward *
+						(1 - getSoftMaxOutput().getValue(0, c)) *
+						getActiveNeuronMatrix(index_output_layer - 1).getValue(0, r)
+						);
+				} else{
+					delta_weights->setValue(
+						r,
+						c,
+						-t_reward *
+						(0 - getSoftMaxOutput().getValue(0, c)) *
+						getActiveNeuronMatrix(index_output_layer - 1).getValue(0, r)
+						);
+				}
+				    //We set a top por the delta_weights in 20||-20, so it won't go to inf
+				if (delta_weights->getValue(r, c) > 20) {
+					delta_weights->setValue(r, c, 20);
+				} else if (delta_weights->getValue(r, c) < -20) {
+					delta_weights->setValue(r, c, -20);
+				}
+			}
+		}
+		    //Compute new weights for lasthiddenlayer <-> outputlayer
+		auto temp_new_weights = std::make_unique<Matrix>(
+			m_topology.at(index_output_layer - 1),
+			m_topology.at(index_output_layer),
+			false
+			);
+
+		for (int r = 0; r < m_topology.at(index_output_layer - 1); r++) {
+			for (int c = 0; c < m_topology.at(index_output_layer); c++) {
+				double original_value = m_weight_matrices.at(index_output_layer - 1).getValue(r, c);
+				double delta_value = delta_weights->getValue(r, c);
+				original_value *= m_momentum;
+				delta_value *= m_learning_rate;
+				temp_new_weights->setValue(r, c, original_value - delta_value);
+			}
+		}
+		std::vector<Matrix *> new_weights;
+		new_weights.push_back(&*temp_new_weights);
+
+		//Last HiddenLayer to InputLayer
+
+		    //We iterate from lasthiddenlayer to the input layer
+		for (int i = index_output_layer - 1; i > 0; i--) {
+			auto p_gradients = std::make_unique<Matrix>();
+			*p_gradients = *gradients;
+
+
+		}
+
 	}
 
 //Setters
