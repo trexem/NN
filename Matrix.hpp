@@ -80,6 +80,7 @@ public:
 			}
 			std::cout << std::endl;
 		}
+		std::cout << "\n";
 	}
 
 	    //Getters
