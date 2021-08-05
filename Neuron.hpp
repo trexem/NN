@@ -5,6 +5,7 @@
 #define SIGM 2
 #define SFMX 3
 #define PRELU 4
+#define SIGM2 5
 
 #include <iostream>
 #include <math.h>
@@ -36,13 +37,15 @@ public:
 			}
 		} else if (m_activation_type == PRELU) {
 			if (m_val > 0) {
-				m_active_val = m_val * 5;
+				m_active_val = m_val * .5;
 			} else{
 				m_active_val = m_val * .001;
 			}
 		} else if (m_activation_type == SIGM) {
 			m_active_val = (1 / (1 + exp(-m_val)));
-		} else if (m_activation_type = SFMX) {
+		} else if (m_activation_type == SIGM2) {
+			m_active_val = (2 / (1 + exp(-m_val)) - 1);
+		} else if (m_activation_type == SFMX) {
 			m_active_val = m_val;
 		} else{
 			m_active_val = (1 / (1 + exp(-m_val)));
@@ -63,6 +66,8 @@ public:
 			}
 		} else if (m_activation_type == SIGM) {
 			m_derived_val = m_active_val * (1 - m_active_val);
+		} else if (m_activation_type == SIGM2) {
+			m_derived_val = (2 * exp(-m_val) / pow(1 + exp(-m_val), 2));
 		} else if (m_activation_type == SFMX) {
 			m_derived_val = m_active_val;
 		} else{
@@ -87,5 +92,8 @@ public:
 	double getActiveVal() {
 		return m_active_val;
 	};
+	int getActivationType() {
+		return m_activation_type;
+	}
 };
 #endif

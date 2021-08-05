@@ -7,7 +7,11 @@
 #include <memory>
 #include "Layer.hpp"
 #include "math.hpp"
-
+//RELU 1
+//SIGM 2
+//SFMX 3
+//PRELU 4
+//SIGM2 5
 
 class NeuralNetwork {
 private:
@@ -26,37 +30,31 @@ private:
 public:
 	    //Constructors
 	    //We ask for the topology of the nn, the activation function for layers
-	NeuralNetwork(std::vector<int> t_topology, int t_hidden_activation) {
+	NeuralNetwork(std::vector<int> t_topology, bool t_altern_positive, int t_hidden_activation) {
 		m_topology = t_topology;
 		m_out_activation = t_hidden_activation;
 		m_hidden_activation = t_hidden_activation;
 		m_topology_size = m_topology.size();
-		m_bias = 1;
-		m_learning_rate = .01;
-		m_momentum = 1;
 		for (int i = 0; i < m_topology_size; i++) {
 			auto lay = std::make_unique<Layer>(m_topology.at(i), m_hidden_activation);
 			m_layers.push_back(*lay);
 		}
 		for (int i = 0; i < m_topology_size - 1; i++) {
 			if (i < m_topology_size - 2) {
-				auto mat = std::make_unique<Matrix>(m_topology.at(i), m_topology.at(i + 1), true, true);
+				auto mat = std::make_unique<Matrix>(m_topology.at(i), m_topology.at(i + 1), true, t_altern_positive);
 				m_weight_matrices.push_back(std::move(mat));
 			} else {
-				auto mat = std::make_unique<Matrix>(m_topology.at(i), m_topology.at(i + 1), true);
+				auto mat = std::make_unique<Matrix>(m_topology.at(i), m_topology.at(i + 1), true, t_altern_positive);
 				m_weight_matrices.push_back(std::move(mat));
 			}
 		}
 	}
 	    //Overload function to specify output layer activation function
-	NeuralNetwork(std::vector<int> t_topology, int t_hidden_activation, int t_out_activation) {
+	NeuralNetwork(std::vector<int> t_topology, bool t_altern_positive, int t_hidden_activation, int t_out_activation) {
 		m_topology = t_topology;
 		m_out_activation = t_out_activation;
 		m_hidden_activation = t_hidden_activation;
 		m_topology_size = m_topology.size();
-		m_bias = 1;
-		m_learning_rate = .01;
-		m_momentum = 1;
 		for (int i = 0; i < m_topology_size; i++) {
 			if (i == m_topology_size - 1) {
 				auto lay = std::make_unique<Layer>(m_topology.at(i), m_out_activation);
@@ -68,10 +66,10 @@ public:
 		}
 		for (int i = 0; i < m_topology_size - 1; i++) {
 			if (i < m_topology_size - 2) {
-				auto mat = std::make_unique<Matrix>(m_topology.at(i), m_topology.at(i + 1), true, true);
+				auto mat = std::make_unique<Matrix>(m_topology.at(i), m_topology.at(i + 1), true, t_altern_positive);
 				m_weight_matrices.push_back(std::move(mat));
 			} else {
-				auto mat = std::make_unique<Matrix>(m_topology.at(i), m_topology.at(i + 1), true);
+				auto mat = std::make_unique<Matrix>(m_topology.at(i), m_topology.at(i + 1), true, t_altern_positive);
 				m_weight_matrices.push_back(std::move(mat));
 			}
 		}
@@ -86,6 +84,7 @@ public:
 				mat.printToConsole();
 			} else {
 				auto mat = m_layers.at(i).matrixifyActiveVals();
+				    //std::cout << "Activation Type: " << m_layers.at(i).getNeurons().at(0).getActivationType() << " " << m_layers.at(i).getNeurons().at(0).getActiveVal() << '\n';
 				mat.printToConsole();
 			}
 			std::cout << "=======================" << std::endl;
@@ -104,15 +103,15 @@ public:
 			auto mat_a = std::make_unique<Matrix>(1, getLayerSize(i), false);
 			if (i) {
 				*mat_a = getActiveNeuronMatrix(i);
-			} else{
+			} else {
 				*mat_a = getNeuronMatrix(i);
 			}
 			auto mat_b = std::make_unique<Matrix>(getLayerSize(i), getLayerSize(i + 1), false);
-			    //mat_b = m_weight_matrices.at(i).get();
+			*mat_b = getWeightMatrix(i);
 			auto mat_c = std::make_unique<Matrix>(1, getLayerSize(i + 1), false);
 			::utils::Math::multiplyMatrix(&*mat_a, m_weight_matrices.at(i).get(), &*mat_c);
 			for (int c_index = 0; c_index < getLayerSize(i + 1); c_index++) {
-				setNeuronValue(i + 1, c_index, mat_c->getValue(0, c_index));
+				setNeuronValue(i + 1, c_index, mat_c->getValue(0, c_index) + m_bias);
 			}
 /*
             if (i == m_layers.size() - 2) {
@@ -168,7 +167,8 @@ public:
 			);
 		for (int r = 0; r < m_topology.at(index_output_layer - 1); r++) {
 			for (int c = 0; c < m_topology.at(index_output_layer); c++) {
-				double original_value = m_weight_matrices.at(index_output_layer - 1)->getValue(r, c);
+				double original_value = m_weight_matrices.at(index_output_layer - 1)
+				                        ->getValue(r, c);
 				double delta_value = delta_weights->getValue(r, c);
 				original_value *= m_momentum;
 				delta_value *= m_learning_rate;
@@ -187,7 +187,11 @@ public:
 			gradients.release();
 			auto transposed_p_weights = std::make_unique<Matrix>();
 			*transposed_p_weights = m_weight_matrices.at(i)->transpose();
-			gradients = std::make_unique<Matrix>(p_gradients->getNumRows(), transposed_p_weights->getNumCols(), false);
+			gradients = std::make_unique<Matrix>(
+				p_gradients->getNumRows(),
+				transposed_p_weights->getNumCols(),
+				false
+				);
 			::utils::Math::multiplyMatrix(&*p_gradients, &*transposed_p_weights, &*gradients);
 
 			auto hidden_derived = std::make_unique<Matrix>();
@@ -201,7 +205,7 @@ public:
 			if (i == 1) {
 				*transposed_hidden = m_layers.at(0).matrixifyVals().transpose();
 			} else {
-				*transposed_hidden = m_layers.at(i).matrixifyActiveVals().transpose();
+				*transposed_hidden = m_layers.at(i - 1).matrixifyActiveVals().transpose();
 			}
 			auto delta_weights = std::make_unique<Matrix>(transposed_hidden->getNumRows(),
 			                                              gradients->getNumCols(),
@@ -229,13 +233,15 @@ public:
 
 	}
 
+
+
 //Setters
 	void setCurrentInput(std::vector<double> t_input) {
 		m_input = t_input;
-		m_error = 0;
+		m_error = 1;
 		for (int i = 0; i < m_errors.size(); i++) {
-			m_errors.at(i) = 0;
-			m_derived_errors.at(i) = 0;
+			m_errors.at(i) = 1;
+			m_derived_errors.at(i) = 1;
 		}
 		for (int i = 0; i < m_input.size(); i++) {
 			m_layers.at(0).setVal(i, m_input.at(i));
@@ -250,8 +256,8 @@ public:
 	void setErrors() {
 		if (m_errors.size() == 0) {
 			for (int qw = 0; qw < m_target.size(); qw++) {
-				m_errors.push_back(0);
-				m_derived_errors.push_back(0);
+				m_errors.push_back(1);
+				m_derived_errors.push_back(1);
 			}
 		}
 		int output_layer_index = m_layers.size() - 1;
@@ -263,9 +269,9 @@ public:
 			m_errors.at(i) = t - y;
 			m_derived_errors.at(i) = m_errors.at(i);
 			m_error += m_errors.at(i);
-			std::cout << m_errors.at(i) << '\t';
+			//std::cout << m_errors.at(i) << '\t';
 		}
-		std::cout << "Total: " << m_error << '\n';
+		    //std::cout << "Total: " << m_error << '\n';
 		m_historical_errors.push_back(m_error);
 	}
 	void setErrors(std::vector<double> t_errors) {
@@ -295,6 +301,9 @@ public:
 	Matrix getDerivedNeuronMatrix(int t_i) {
 		return m_layers.at(t_i).matrixifyDerivedVals();
 	}
+	Matrix getWeightMatrix(int t_i) {
+		return *m_weight_matrices.at(t_i).get();
+	}
 	/*std::unique_ptr<Matrix> getWeightMatrix(int t_i) {
 	    return m_weight_matrices.at(t_i);
 	   }*/
@@ -310,7 +319,7 @@ public:
 
 	    //variables
 	double m_bias{1};
-	double m_momentum{0.01};
-	double m_learning_rate{10};
+	double m_momentum{1};
+	double m_learning_rate{.01};
 };
 #endif

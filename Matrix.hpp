@@ -34,17 +34,20 @@ public:
 	Matrix(int t_num_rows, int t_num_cols, bool t_is_random, bool t_altern_positive) {
 		m_num_rows = t_num_rows;
 		m_num_cols = t_num_cols;
+		bool positive = false;
 		for (int r = 0; r < m_num_rows; r++) {
 			std::vector<double> col_values;
+			positive = !positive;
 			for (int c = 0; c < m_num_cols; c++) {
 				double num = 0.0;
 				if (t_is_random) {
 					num = getRandomNumber();
 				}
-				if (t_altern_positive && c % 2) {
+				if (t_altern_positive && positive) {
 					num = -num;
 				}
 				col_values.push_back(num);
+				positive = !positive;
 			}
 			m_values.push_back(col_values);
 		}
@@ -93,7 +96,7 @@ public:
 	int getNumCols() {
 		return m_num_cols;
 	}
-	double getRandomNumber() {
+	static double getRandomNumber() {
 		std::random_device rd;
 		std::mt19937 gen(rd());
 		std::uniform_real_distribution<> dis(0, 1);
