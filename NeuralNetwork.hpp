@@ -30,8 +30,8 @@ private:
 public:
 	    //Constructors
 	    //We ask for the topology of the nn, the activation function for layers
-	NeuralNetwork(std::vector<int> t_topology, bool t_altern_positive, int t_hidden_activation) {
-		m_topology = t_topology;
+	NeuralNetwork(std::unique_ptr<std::vector<int> > t_topology, bool t_altern_positive, int t_hidden_activation) {
+		m_topology = *t_topology;
 		m_out_activation = t_hidden_activation;
 		m_hidden_activation = t_hidden_activation;
 		m_topology_size = m_topology.size();
@@ -50,8 +50,8 @@ public:
 		}
 	}
 	    //Overload function to specify output layer activation function
-	NeuralNetwork(std::vector<int> t_topology, bool t_altern_positive, int t_hidden_activation, int t_out_activation) {
-		m_topology = t_topology;
+	NeuralNetwork(std::unique_ptr<std::vector<int> > t_topology, bool t_altern_positive, int t_hidden_activation, int t_out_activation) {
+		m_topology = *t_topology;
 		m_out_activation = t_out_activation;
 		m_hidden_activation = t_hidden_activation;
 		m_topology_size = m_topology.size();
