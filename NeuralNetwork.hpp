@@ -36,17 +36,17 @@ public:
 		m_hidden_activation = t_hidden_activation;
 		m_topology_size = m_topology.size();
 		for (int i = 0; i < m_topology_size; i++) {
-			auto lay = std::make_unique<Layer>(m_topology.at(i), m_hidden_activation);
-			m_layers.push_back(*lay);
+			if (i == m_topology_size - 1) {
+				auto lay = std::make_unique<Layer>(m_topology.at(i), true, m_hidden_activation);
+				m_layers.push_back(*lay);
+			} else {
+				auto lay = std::make_unique<Layer>(m_topology.at(i), false, m_hidden_activation);
+				m_layers.push_back(*lay);
+			}
 		}
 		for (int i = 0; i < m_topology_size - 1; i++) {
-			if (i < m_topology_size - 2) {
-				auto mat = std::make_unique<Matrix>(m_topology.at(i), m_topology.at(i + 1), true, t_altern_positive);
-				m_weight_matrices.push_back(std::move(mat));
-			} else {
-				auto mat = std::make_unique<Matrix>(m_topology.at(i), m_topology.at(i + 1), true, t_altern_positive);
-				m_weight_matrices.push_back(std::move(mat));
-			}
+			auto mat = std::make_unique<Matrix>(m_topology.at(i) + 1, m_topology.at(i + 1), true, t_altern_positive);
+			m_weight_matrices.push_back(std::move(mat));
 		}
 	}
 	    //Overload function to specify output layer activation function
@@ -57,19 +57,19 @@ public:
 		m_topology_size = m_topology.size();
 		for (int i = 0; i < m_topology_size; i++) {
 			if (i == m_topology_size - 1) {
-				auto lay = std::make_unique<Layer>(m_topology.at(i), m_out_activation);
+				auto lay = std::make_unique<Layer>(m_topology.at(i), true, m_out_activation);
 				m_layers.push_back(*lay);
 			} else {
-				auto lay = std::make_unique<Layer>(m_topology.at(i), m_hidden_activation);
+				auto lay = std::make_unique<Layer>(m_topology.at(i), false, m_hidden_activation);
 				m_layers.push_back(*lay);
 			}
 		}
 		for (int i = 0; i < m_topology_size - 1; i++) {
 			if (i < m_topology_size - 2) {
-				auto mat = std::make_unique<Matrix>(m_topology.at(i), m_topology.at(i + 1), true, t_altern_positive);
+				auto mat = std::make_unique<Matrix>(m_topology.at(i) + 1, m_topology.at(i + 1), true, t_altern_positive);
 				m_weight_matrices.push_back(std::move(mat));
 			} else {
-				auto mat = std::make_unique<Matrix>(m_topology.at(i), m_topology.at(i + 1), true, t_altern_positive);
+				auto mat = std::make_unique<Matrix>(m_topology.at(i) + 1, m_topology.at(i + 1), true, t_altern_positive);
 				m_weight_matrices.push_back(std::move(mat));
 			}
 		}
@@ -110,8 +110,9 @@ public:
 			*mat_b = getWeightMatrix(i);
 			auto mat_c = std::make_unique<Matrix>(1, getLayerSize(i + 1), false);
 			::utils::Math::multiplyMatrix(&*mat_a, m_weight_matrices.at(i).get(), &*mat_c);
+			    //-1 for the bias node
 			for (int c_index = 0; c_index < getLayerSize(i + 1); c_index++) {
-				setNeuronValue(i + 1, c_index, mat_c->getValue(0, c_index) + m_bias);
+				setNeuronValue(i + 1, c_index, mat_c->getValue(0, c_index));
 			}
 /*
             if (i == m_layers.size() - 2) {
@@ -146,7 +147,7 @@ public:
 		}
 		    //Initialize delta_weights matrix
 		auto delta_weights = std::make_unique<Matrix>(
-			m_topology.at(index_output_layer - 1),
+			m_topology.at(index_output_layer - 1) + 1,
 			m_topology.at(index_output_layer),
 			false
 			);
@@ -161,11 +162,11 @@ public:
 		}
 		    //Compute new weights for lasthiddenlayer <-> outputlayer
 		auto temp_new_weights = std::make_unique<Matrix>(
-			m_topology.at(index_output_layer - 1),
+			m_topology.at(index_output_layer - 1) + 1,
 			m_topology.at(index_output_layer),
 			false
 			);
-		for (int r = 0; r < m_topology.at(index_output_layer - 1); r++) {
+		for (int r = 0; r < m_topology.at(index_output_layer - 1) + 1; r++) {
 			for (int c = 0; c < m_topology.at(index_output_layer); c++) {
 				double original_value = m_weight_matrices.at(index_output_layer - 1)
 				                        ->getValue(r, c);
@@ -233,7 +234,47 @@ public:
 
 	}
 
-
+	static void askInitializers(std::unique_ptr <std::vector<int> > & t_topology,
+	                            std::unique_ptr <std::vector<std::vector<double> > > & t_input,
+	                            std::unique_ptr <std::vector<std::vector<double> > > & t_output) {
+		int layers, temp, test_cases;
+		double test;
+		    //Topology
+		std::cout << "How many Layers?" << '\t';
+		std::cin >> layers;
+		for (int i = 1; i <= layers; i++) {
+			if (i == 1) {
+				std::cout << "How many input nodes?" << '\t';
+			} else if (i < layers) {
+				std::cout << "How many nodes for layer " << i << "?" << '\t';
+			} else {
+				std::cout << "How many output nodes?" << '\t';
+			}
+			std::cin >> temp;
+			t_topology->push_back(temp);
+		}
+		    //Test inputs and outputs
+		std::cout << "How many test cases?" << '\t';
+		std::cin >> test_cases;
+		std::vector<double> temp_vector;
+		for (int i = 1; i <= test_cases; i++) {
+			std::cout << "Test case " << i << '\n';
+			for (int j = 0; j < t_topology->at(0); j++) {
+				std::cout << "Input " << j << ":\t";
+				std::cin >> test;
+				temp_vector.push_back(test);
+			}
+			t_input->push_back(temp_vector);
+			temp_vector.clear();
+			for (int j = 0; j < t_topology->at(t_topology->size() - 1); j++) {
+				std::cout << "Output " << j << ":\t";
+				std::cin >> test;
+				temp_vector.push_back(test);
+			}
+			t_output->push_back(temp_vector);
+			temp_vector.clear();
+		}
+	}
 
 //Setters
 	void setCurrentInput(std::vector<double> t_input) {

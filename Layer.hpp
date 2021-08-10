@@ -14,17 +14,30 @@ public:
 	    //Constructors
 	Layer() {
 	}
-	Layer(int t_size) {
+	Layer(int t_size, bool t_is_output) {
 		m_size = t_size;
 		for (int r = 0; r < m_size; r++) {
 			auto neuron = std::make_unique<Neuron>(0.0);
 			m_neurons.push_back(*neuron);
 		}
+		    //bias node
+		if (!t_is_output) {
+			auto neuron = std::make_unique<Neuron>(1.0, RELU);
+			neuron->activate();
+			m_neurons.push_back(*neuron);
+		}
 	}
-	Layer(int t_size, int t_activation_type) {
+
+	Layer(int t_size, bool t_is_output, int t_activation_type) {
 		m_size = t_size;
 		for (int r = 0; r < m_size; r++) {
 			auto neuron = std::make_unique<Neuron>(0.0, t_activation_type);
+			m_neurons.push_back(*neuron);
+		}
+		    //bias node
+		if (!t_is_output) {
+			auto neuron = std::make_unique<Neuron>(1.0, RELU);
+			neuron->activate();
 			m_neurons.push_back(*neuron);
 		}
 	}
